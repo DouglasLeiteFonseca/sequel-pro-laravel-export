@@ -146,7 +146,7 @@ do
         LEFT JOIN
             information_schema.KEY_COLUMN_USAGE kcu
         ON
-            (rc.CONSTRAINT_NAME=kcu.CONSTRAINT_NAME)
+            (rc.CONSTRAINT_NAME=kcu.CONSTRAINT_NAME  AND rc.CONSTRAINT_SCHEMA=kcu.CONSTRAINT_SCHEMA)
         WHERE
             kcu.CONSTRAINT_SCHEMA = '${SP_SELECTED_DATABASE}'
         AND
