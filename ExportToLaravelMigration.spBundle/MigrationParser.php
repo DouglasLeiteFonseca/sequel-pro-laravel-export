@@ -6,7 +6,7 @@ class MigrationParser
     /**
      * @var string
      */
-    protected $version = '1.4.1';
+    protected $version = '1.5.0';
 
     /**
      * @var array
@@ -228,7 +228,7 @@ class MigrationParser
                 $temp .= '->nullable()';
             }
             if (isset($data['default'])) {
-                if ($isNumeric || ($method === 'enum')) {
+                if ($isNumeric || ($method === 'enum' && is_numeric($data['default']))) {
                     $temp .= '->default(' . $data['default'] . ')';
                 } elseif ($method==='boolean') {
                     $temp .= '->default(' . ($data['default'] ? 'true' : 'false') . ')';
@@ -241,7 +241,7 @@ class MigrationParser
 
             // If isn't empty, set the comment
             if ($data['comment'] !== '') {
-                $temp .= '->comment(\'' . $data['comment'] . '\')';
+                $temp .= '->comment(\'' . addslashes($data['comment']) . '\')';
             }
 
             $fields[$field] = $temp . ';';
@@ -351,7 +351,7 @@ class MigrationParser
                 unset($this->keys[$constraint]);
             }
 
-            $this->constraints[$constraint] = compact('colName', 'refTable', 'refColumn', 'updateRule', 'deleteRule');
+            $this->constraints[$constraint][] = compact('colName', 'refTable', 'refColumn', 'updateRule', 'deleteRule');
         }
     }
 
@@ -359,12 +359,13 @@ class MigrationParser
     {
         $fields = [];
         foreach ($this->constraints as $field => $data) {
-            $columns = $this->escapeArray($data['colName']);
-            $temp = '$table->foreign(' . $columns . ', \'' . $field . '\')' .
-                '->references(\'' . $data['refColumn'] . '\')' .
-                '->on(\'' . $data['refTable'] . '\')' .
-                '->onDelete(\'' . $data['deleteRule'] . '\')' .
-                '->onUpdate(\'' . $data['updateRule'] . '\')';
+            $colNames   = $this->escapeArray(array_map(function ($entry) { return $entry['colName']; }, $data));
+            $refColumns  = $this->escapeArray(array_map(function ($entry) { return $entry['refColumn']; }, $data));
+            $temp = '$table->foreign(' . $colNames . ', \'' . $field . '\')' .
+                '->references(' . $refColumns . ')' .
+                '->on(\'' . $data[0]['refTable'] . '\')' .
+                '->onDelete(\'' . $data[0]['deleteRule'] . '\')' .
+                '->onUpdate(\'' . $data[0]['updateRule'] . '\')';
 
             $fields[$field] = $temp . ';';
         }
